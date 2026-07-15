@@ -1,0 +1,65 @@
+====================================================
+  KALKULATOR DISTRIBUSI — SARI UDANG JUMBO (PWA)
+  Cara host & install ke HP
+====================================================
+
+Isi folder ini:
+  index.html      <- aplikasinya
+  manifest.json   <- identitas app (nama, ikon, warna)
+  sw.js           <- service worker (bikin bisa jalan OFFLINE)
+  icon-192.png    <- ikon app
+  icon-512.png    <- ikon app
+
+PENTING: PWA HARUS di-host lewat HTTPS supaya bisa "di-install"
+dan jalan offline. Kalau file index.html cuma dibuka langsung
+(dobel klik / file://), app-nya tetap jalan TAPI tidak bisa
+di-install & service worker tidak aktif. Jadi wajib di-upload dulu.
+
+----------------------------------------------------
+LANGKAH 1 — HOST (pilih salah satu, semua GRATIS)
+----------------------------------------------------
+
+Cara paling gampang: NETLIFY DROP
+  1. Buka https://app.netlify.com/drop
+  2. Login (bisa pakai akun Google/GitHub) — cukup sekali.
+  3. Seret (drag) SELURUH folder "suj-app" ini ke halaman itu.
+  4. Beberapa detik → dapat link seperti
+     https://nama-acak.netlify.app  <- ini alamat app-mu.
+  5. (Opsional) ganti nama subdomain di Site settings.
+
+Alternatif: GITHUB PAGES (link permanen & rapi)
+  1. Buat repo baru di GitHub, upload semua file di folder ini
+     (index.html harus ada di root repo).
+  2. Settings > Pages > Source: branch "main", folder "/ (root)".
+  3. Tunggu ~1 menit, dapat link
+     https://username.github.io/nama-repo
+
+Alternatif: VERCEL — mirip Netlify, drag folder / connect repo.
+
+----------------------------------------------------
+LANGKAH 2 — INSTALL KE HP
+----------------------------------------------------
+
+ANDROID (Chrome):
+  1. Buka link app-mu di Chrome.
+  2. Tekan menu titik-tiga (⋮) di kanan atas.
+  3. Pilih "Tambahkan ke Layar utama" / "Install aplikasi".
+  4. Ikon SUJ muncul di home screen. Buka -> tampil layar penuh
+     tanpa address bar, persis seperti aplikasi biasa.
+
+iPHONE (Safari):
+  1. Buka link app-mu di Safari (harus Safari, bukan Chrome).
+  2. Tekan tombol Share (kotak dengan panah ke atas).
+  3. Scroll, pilih "Add to Home Screen" / "Tambah ke Layar Utama".
+  4. Ikon muncul di home screen.
+
+Setelah dibuka sekali dalam kondisi online, app akan tersimpan
+dan bisa dibuka lagi walau tanpa internet.
+
+----------------------------------------------------
+CATATAN
+----------------------------------------------------
+- Semua perhitungan jalan di HP, tidak kirim data ke mana pun.
+- Kalau kamu ubah isi kalkulator nanti, re-upload folder ini &
+  naikkan versi cache di sw.js (ganti 'suj-distribusi-v1' jadi -v2)
+  supaya HP ambil versi baru.

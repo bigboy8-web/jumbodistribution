@@ -1,0 +1,15 @@
+# Konfigurasi deploy Netlify — app statis, tidak ada build step.
+[build]
+  publish = "."
+  command = ""
+
+# Header supaya PWA & service worker berperilaku benar
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Content-Type = "application/manifest+json"

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kalkulator Distribusi — Sari Udang Jumbo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --ink: #171b23;
+    --soft: #737d8c;
+    --line: #e9edf4;
+    --red: #b02a24;
+    --orange: #e8781c;
+    --green: #1f9d5a;
+    --greenbg: #e9f7ef;
+    --redbg: #fdecea;
+    --blue: #3b6ff5;
+    --shadow: 0 4px 24px rgba(23, 27, 35, .06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; padding: 22px 16px 40px;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .logo-img { height: 56px; width: auto; display: block; }
+  .brand-tag {
+    font-size: 12px; font-weight: 700; color: var(--red);
+    background: var(--redbg); padding: 5px 12px; border-radius: 999px;
+    letter-spacing: .04em; align-self: center;
+  }
+  h1 { font-size: 26px; font-weight: 800; margin: 12px 0 4px; letter-spacing: -.02em; }
+  .sub { color: var(--soft); font-size: 13.5px; margin: 0 0 20px; max-width: 640px; line-height: 1.5; }
+
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+  .kpi {
+    background: var(--card); border-radius: 20px; padding: 18px 20px 0;
+    box-shadow: var(--shadow); position: relative; overflow: hidden; min-height: 196px;
+  }
+  .kpi::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 2; }
+  .kpi.blue::before   { background: linear-gradient(90deg, #5bc8f5, #2f74f0); }
+  .kpi.orange::before { background: linear-gradient(90deg, #f6b44d, #ea5a2a); }
+  .kpi.purple::before { background: linear-gradient(90deg, #f15bb5, #9a4ce6); }
+  .kpi-head { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .kpi .lab { font-size: 13px; color: var(--ink); font-weight: 700; }
+  .kpi .foot { font-size: 11px; color: #a2abb8; margin-top: 3px; }
+  .kpi .val { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1; text-align: right; white-space: nowrap; }
+  .kpi .val small { font-size: 15px; font-weight: 800; opacity: .8; margin-right: 3px; }
+  .kpi .val .unit { font-size: 16px; font-weight: 800; opacity: .8; margin-left: 3px; }
+  .kpi.blue .val   { color: #2f74f0; }
+  .kpi.orange .val { color: #ea5a2a; }
+  .kpi canvas { position: absolute; left: 0; right: 0; bottom: 0; width: 100% !important; height: 118px !important; z-index: 1; }
+
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 16px; align-items: start; }
+  .card { background: var(--card); border-radius: 18px; padding: 18px; box-shadow: var(--shadow); }
+  .card h3 { margin: 0 0 12px; font-size: 12px; letter-spacing: .06em; color: var(--red); text-transform: uppercase; }
+  .card h3.mt { margin-top: 18px; }
+
+  label { display: block; margin-bottom: 11px; }
+  label span { font-size: 12px; color: var(--soft); display: block; margin-bottom: 4px; }
+  .inrow { display: flex; align-items: center; gap: 6px; }
+  input[type=number] {
+    width: 100%; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line);
+    font: 600 14px 'Plus Jakarta Sans', sans-serif; color: var(--ink); background: #fbfcfe; outline: none;
+  }
+  input[type=number]:focus { border-color: var(--orange); background: #fff; }
+  .inrow em { font-style: normal; font-size: 11px; color: var(--soft); }
+
+  .marginbox { font-size: 12px; background: var(--redbg); border-radius: 10px; padding: 9px 11px; margin: 4px 0 14px; line-height: 1.6; }
+  .marginbox b { color: var(--red); }
+
+  .statgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  .stat { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .stat .l { font-size: 11px; color: var(--soft); }
+  .stat .v { font-size: 18px; font-weight: 800; margin-top: 3px; }
+  .stat.big .v { font-size: 23px; }
+
+  .bep { background: var(--redbg); border: 1px solid #f2c9c5; border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
+  .bep .t { font-weight: 700; color: var(--red); margin-bottom: 8px; font-size: 12.5px; }
+  .bep-row { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; font-size: 13px; }
+  .bep-row span:first-child { color: var(--soft); }
+  .bep-row span:last-child { font-weight: 600; color: var(--ink); }
+  .bep-row.total { border-top: 1px solid #f2c9c5; margin-top: 5px; padding-top: 7px; }
+  .bep-row.total span { font-weight: 800; color: var(--red); }
+  .bep-final { margin-top: 10px; font-size: 13px; color: var(--ink); line-height: 1.5; }
+  .bep-final b { color: var(--red); font-weight: 800; }
+
+  .slidebox { border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-top: 12px; }
+  .slidebox .top { display: flex; justify-content: space-between; font-size: 13px; }
+  .slidebox .top b { color: var(--red); }
+  input[type=range] { width: 100%; accent-color: var(--red); margin: 9px 0 3px; }
+  .slidebox .hint { font-size: 11px; color: var(--soft); }
+
+  .verdict { border-radius: 16px; padding: 15px 17px; margin-top: 12px; }
+  .verdict .l { font-size: 11px; color: var(--soft); }
+  .verdict .v { font-size: 27px; font-weight: 800; }
+  .verdict p { margin: 5px 0 0; font-size: 12.5px; line-height: 1.55; }
+
+  .chartcard { margin-top: 16px; }
+  .chartcard p.note { margin: 0 0 6px; font-size: 12px; color: var(--soft); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  th { font-size: 11px; color: var(--soft); font-weight: 600; padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+  th:first-child { text-align: left; }
+  td { padding: 8px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+  td:first-child { text-align: left; font-weight: 700; }
+  tr.target { background: var(--redbg); }
+  td.pos { color: var(--green); font-weight: 800; }
+  td.neg { color: var(--red); font-weight: 800; }
+
+  .footnote { font-size: 11px; color: var(--soft); margin-top: 14px; line-height: 1.55; }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: 1fr; }
+    h1 { font-size: 22px; }
+  }
+</style>
+
+<meta name="theme-color" content="#b02a24" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="SUJ Distribusi" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" href="icon-192.png" />
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <img class="logo-img" src="logo.png" alt="Kerupuk Jumbo Sari Udang" />
+    <span class="brand-tag">Distribusi</span>
+  </div>
+  <h1>Kalkulator Kelayakan Distribusi Sendiri</h1>
+  <p class="sub">Karena kamu pemilik dua perusahaan, laba bersih distribusi = <b>nilai tambah</b> dari punya distribusi sendiri vs. jual ke distributor pihak ketiga (yang nilainya Rp&nbsp;0 buatmu). Geser & ubah asumsinya di panel kiri.</p>
+
+  <div class="kpis">
+    <div class="kpi blue">
+      <div class="kpi-head">
+        <div><div class="lab">Kontribusi bersih</div><div class="foot">per karton, stlh komisi & kirim</div></div>
+        <div class="val" id="k-kontrib"></div>
+      </div>
+      <canvas id="spark1"></canvas>
+    </div>
+    <div class="kpi orange">
+      <div class="kpi-head">
+        <div><div class="lab">BEP dengan bonus</div><div class="foot" id="k-bep-foot"></div></div>
+        <div class="val" id="k-bep"></div>
+      </div>
+      <canvas id="spark2"></canvas>
+    </div>
+    <div class="kpi purple">
+      <div class="kpi-head">
+        <div><div class="lab">Laba distribusi total</div><div class="foot" id="k-net-foot"></div></div>
+        <div class="val" id="k-net"></div>
+      </div>
+      <canvas id="spark3"></canvas>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- INPUT -->
+    <div class="card">
+      <h3>Harga & Margin</h3>
+      <label><span>Harga beli dari pabrik /karton</span><div class="inrow"><input type="number" id="hargaPabrik" value="264000" step="1000"></div></label>
+      <label><span>Harga jual ke toko /karton</span><div class="inrow"><input type="number" id="hargaToko" value="288000" step="1000"></div></label>
+      <div class="marginbox" id="marginbox"></div>
+
+      <h3 class="mt">Biaya Salesman /bulan</h3>
+      <label><span>Gaji pokok</span><div class="inrow"><input type="number" id="gaji" value="1600000" step="50000"></div></label>
+      <label><span>Komisi /karton (semua penjualan + repeat)</span><div class="inrow"><input type="number" id="komisi" value="5000" step="1000"></div></label>
+      <label><span>Sewa motor /hari</span><div class="inrow"><input type="number" id="sewa" value="10000" step="1000"></div></label>
+      <label><span>Bensin /hari</span><div class="inrow"><input type="number" id="bensin" value="10000" step="1000"></div></label>
+      <label><span>Uang makan /hari</span><div class="inrow"><input type="number" id="makan" value="15000" step="1000"></div></label>
+      <label><span>Hari kerja /bulan</span><div class="inrow"><input type="number" id="hari" value="25" step="1"><em>hari</em></div></label>
+      <label><span>Bonus (jika tembus target)</span><div class="inrow"><input type="number" id="bonus" value="300000" step="50000"></div></label>
+      <label><span>Target bonus (karton)</span><div class="inrow"><input type="number" id="threshold" value="115" step="5"><em>krt</em></div></label>
+
+      <h3 class="mt">Biaya Lain (opsional)</h3>
+      <label><span>Biaya kirim /karton</span><div class="inrow"><input type="number" id="kirim" value="0" step="1000"></div></label>
+      <label><span>Overhead distribusi /bulan</span><div class="inrow"><input type="number" id="overhead" value="0" step="500000"></div></label>
+      <label><span>Jumlah salesman</span><div class="inrow"><input type="number" id="sales" value="1" step="1"><em>orang</em></div></label>
+    </div>
+
+    <!-- OUTPUT -->
+    <div>
+      <div class="statgrid">
+        <div class="stat"><div class="l">Biaya tetap /salesman (tanpa bonus)</div><div class="v" id="s-fixno"></div></div>
+        <div class="stat"><div class="l">Biaya tetap /salesman (dgn bonus)</div><div class="v" id="s-fixbon"></div></div>
+        <div class="stat"><div class="l">BEP tanpa bonus</div><div class="v" style="color:var(--orange)" id="s-bepno"></div></div>
+        <div class="stat"><div class="l">BEP dengan bonus</div><div class="v" style="color:var(--orange)" id="s-bepbon"></div></div>
+      </div>
+
+      <div class="bep">
+        <div class="t">Rincian BEP — komisi = biaya variabel, masuk ke kontribusi</div>
+        <div id="bep-rows"></div>
+      </div>
+
+      <div class="slidebox">
+        <div class="top"><span style="color:var(--soft)">Volume penjualan /salesman</span><b id="vol-lab"></b></div>
+        <input type="range" id="volume" min="0" max="280" step="5" value="115">
+        <div class="hint" id="vol-hint"></div>
+      </div>
+
+      <div class="statgrid" style="margin-top:12px">
+        <div class="stat big"><div class="l">Laba bersih distribusi /salesman</div><div class="v" id="s-netsales"></div></div>
+        <div class="stat"><div class="l">Take-home salesman /bln</div><div class="v" id="s-takehome"></div><div class="l" style="margin-top:2px">gaji + bonus + sewa motor + komisi</div></div>
+      </div>
+
+      <div class="verdict" id="verdict">
+        <div class="l">Total laba bersih distribusi (stlh overhead)</div>
+        <div class="v" id="v-total"></div>
+        <p id="v-text"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card chartcard">
+    <h3>Laba bersih per salesman vs volume</h3>
+    <p class="note" id="chart-note"></p>
+    <canvas id="mainchart" height="110"></canvas>
+  </div>
+
+  <div class="card chartcard">
+    <h3>Tabel komisi & skenario volume</h3>
+    <p class="note" id="tabel-note"></p>
+    <table>
+      <thead><tr><th>Karton/bln</th><th>Komisi salesman</th><th>Take-home</th><th>Laba distribusi/salesman</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <p class="footnote">Catatan: kalkulator ini single-product. Distributor Pekalongan yang “works belasan tahun” kemungkinan besar menyebar biaya tetap ini ke puluhan SKU — jadi BEP per-produk mereka jauh lebih rendah dari BEP di sini. Bandingkan apel ke apel sebelum menyimpulkan “angkanya works”.</p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const rp = n => "Rp " + Math.round(n).toLocaleString("id-ID");
+const rpShort = n => Math.abs(n) >= 1e6 ? (n/1e6).toFixed(1).replace(".0","")+" jt"
+                   : Math.abs(n) >= 1e3 ? Math.round(n/1e3)+" rb" : Math.round(n);
+const num = id => Number($(id).value) || 0;
+
+// Angka besar ringkas untuk kartu KPI: 19.000 -> "19"+"rb", 2.025.000 -> "2,0"+"jt"
+function big(n) {
+  const a = Math.abs(n);
+  if (a >= 1e6) return [(n/1e6).toFixed(1).replace(".", ","), "jt"];
+  if (a >= 1e3) return [Math.round(n/1e3).toLocaleString("id-ID"), "rb"];
+  return [Math.round(n).toString(), ""];
+}
+function kpiRp(n) {
+  const [v, u] = big(n);
+  return "<small>Rp</small>" + v + (u ? "<span class='unit'>" + u + "</span>" : "");
+}
+
+let mainChart, sparks = {};
+
+function grad(ctx, area, stops) {
+  const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+  stops.forEach(([o, c]) => g.addColorStop(o, c));
+  return g;
+}
+
+// Gelombang padat bergradasi kiri→kanan, seperti kartu dashboard referensi
+function makeWave(id, cLeft, cRight) {
+  const c = $(id).getContext("2d");
+  return new Chart(c, {
+    type: "line",
+    data: { labels: Array(10).fill(""), datasets: [{
+      data: [], borderColor: cRight, borderWidth: 0, tension: .55, pointRadius: 0, fill: true,
+      backgroundColor: (x) => {
+        const { ctx, chartArea } = x.chart;
+        if (!chartArea) return "transparent";
+        const g = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+        g.addColorStop(0, cLeft); g.addColorStop(1, cRight);
+        return g;
+      }
+    }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false, min: 0, max: 100 } },
+      animation: false, layout: { padding: 0 }
+    }
+  });
+}
+
+// Normalisasi array ke rentang 8..92 supaya kurva mengisi kartu dengan proporsional
+function normWave(a) {
+  const mn = Math.min(...a), mx = Math.max(...a), d = (mx - mn) || 1;
+  return a.map(x => 8 + 84 * (x - mn) / d);
+}
+
+function calc() {
+  const hargaPabrik=num("hargaPabrik"), hargaToko=num("hargaToko"), gaji=num("gaji"),
+        komisi=num("komisi"), sewa=num("sewa"), bensin=num("bensin"), makan=num("makan"),
+        hari=num("hari"), bonus=num("bonus"), threshold=num("threshold"),
+        kirim=num("kirim"), overhead=num("overhead"), sales=num("sales"), volume=num("volume");
+
+  const margin = hargaToko - hargaPabrik;
+  const kontribusi = margin - komisi - kirim;
+  const harian = sewa + bensin + makan;
+  const baseFixed = gaji + harian * hari;
+  const fixedBonus = baseFixed + bonus;
+  const bepNo = kontribusi > 0 ? baseFixed / kontribusi : Infinity;
+  const bepBon = kontribusi > 0 ? fixedBonus / kontribusi : Infinity;
+  const netAt = v => v * kontribusi - baseFixed - (v >= threshold ? bonus : 0);
+  const takeAt = v => gaji + (v >= threshold ? bonus : 0) + sewa * hari + komisi * v;
+  const netPerSales = netAt(volume);
+  const totalNet = netPerSales * sales - overhead;
+  const worth = totalNet > 0;
+
+  // KPIs
+  $("k-kontrib").innerHTML = kpiRp(kontribusi);
+  $("k-bep").innerHTML = (isFinite(bepBon) ? Math.ceil(bepBon) : "∞") + "<span class='unit'>krt</span>";
+  $("k-bep-foot").textContent = "target kamu: " + threshold + " krt";
+  $("k-net").innerHTML = kpiRp(totalNet);
+  $("k-net").style.color = worth ? "#1f9d5a" : "#b02a24";
+  $("k-net-foot").textContent = "@ " + volume + " krt · " + sales + " salesman";
+
+  // margin box
+  $("marginbox").innerHTML = "Margin kotor <b>"+rp(margin)+"</b> − komisi <b>"+rp(komisi)+
+    "</b> = kontribusi bersih <b>"+rp(kontribusi)+"/karton</b>";
+
+  // stats
+  $("s-fixno").textContent = rp(baseFixed);
+  $("s-fixbon").textContent = rp(fixedBonus);
+  $("s-bepno").textContent = (isFinite(bepNo)?Math.ceil(bepNo):"∞") + " krt";
+  $("s-bepbon").textContent = (isFinite(bepBon)?Math.ceil(bepBon):"∞") + " krt";
+
+  const bepRow = (l, v, cls) => "<div class='bep-row " + (cls || "") + "'><span>" + l + "</span><span>" + v + "</span></div>";
+  $("bep-rows").innerHTML =
+    bepRow("Margin jual", rp(margin)) +
+    bepRow("− Komisi", rp(komisi)) +
+    bepRow("− Kirim", rp(kirim)) +
+    bepRow("Kontribusi bersih", rp(kontribusi) + " /karton", "total") +
+    "<div class='bep-final'>BEP + bonus = " + rp(fixedBonus) + " ÷ " + rp(kontribusi) +
+    " = <b>" + (isFinite(bepBon) ? Math.ceil(bepBon) : "∞") + " karton/bln</b></div>";
+
+  // slider
+  $("vol-lab").textContent = volume + " karton/bln";
+  $("vol-hint").innerHTML = "≈ " + (volume/(hari||1)).toFixed(1) + " karton/hari · " +
+    (volume >= threshold ? "<b style='color:var(--green)'>bonus aktif</b>" : "<b style='color:var(--orange)'>belum dapat bonus</b>");
+
+  $("s-netsales").textContent = rp(netPerSales);
+  $("s-netsales").style.color = netPerSales >= 0 ? "var(--green)" : "var(--red)";
+  $("s-takehome").textContent = rp(takeAt(volume));
+
+  // verdict
+  const vd = $("verdict");
+  vd.style.background = worth ? "var(--greenbg)" : "var(--redbg)";
+  vd.style.border = "1px solid " + (worth ? "var(--green)" : "#f2c9c5");
+  $("v-total").textContent = rp(totalNet) + " /bulan";
+  $("v-total").style.color = worth ? "var(--green)" : "var(--red)";
+  $("v-text").textContent = worth
+    ? "✓ Distribusi sendiri lebih untung daripada serahkan ke pihak ketiga — selisih ini murni nilai tambahmu, di luar manfaat kontrol channel & data outlet."
+    : "✗ Di skenario ini distribusi sendiri RUGI. Lebih baik jual ke distributor pihak ketiga di harga pabrik, kecuali kontrol channel & data outlet kamu nilai lebih besar dari kerugian ini.";
+
+  $("chart-note").textContent = "Perhatikan 'tebing' tepat di target bonus ("+threshold+" krt): laba turun karena bonus "+rp(bonus)+" kepicu. Hindari salesman parkir tepat di angka ini.";
+  $("tabel-note").textContent = "Komisi "+rp(komisi)+"/karton berlaku untuk semua penjualan (baru + repeat).";
+
+  // main chart data
+  const xs = [], ys = [];
+  for (let v = 0; v <= 280; v += 5) { xs.push(v); ys.push(netAt(v)); }
+  if (!mainChart) {
+    mainChart = new Chart($("mainchart").getContext("2d"), {
+      type: "line",
+      data: { labels: xs, datasets: [{ data: ys, borderColor: "#e8781c", borderWidth: 2.5, tension: .3, pointRadius: 0,
+        fill: true, backgroundColor: (x) => { const {ctx, chartArea} = x.chart; if(!chartArea) return "transparent"; return grad(ctx, chartArea, [[0,"rgba(232,120,28,.28)"],[1,"rgba(232,120,28,0)"]]); } }] },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: {display:false},
+          tooltip: { callbacks: { title: i => i[0].label + " karton/bln", label: i => "Laba/salesman: " + rp(i.raw) } } },
+        scales: { x: { grid: {color:"#f0f2f7"}, ticks: {color:"#9aa3b0", maxTicksLimit: 10}, title:{display:true,text:"karton/bulan",color:"#9aa3b0"} },
+                  y: { grid: {color:"#f0f2f7"}, ticks: {color:"#9aa3b0", callback: v => rpShort(v)} } } }
+    });
+    $("mainchart").parentElement.style.height = "260px";
+  } else { mainChart.data.labels = xs; mainChart.data.datasets[0].data = ys; mainChart.update(); }
+
+  // table
+  const rows = [100, threshold, 130, 150, 200, 250];
+  $("tbody").innerHTML = rows.map(v => {
+    const net = netAt(v);
+    return "<tr class='"+(v===threshold?"target":"")+"'>"+
+      "<td>"+v+(v===threshold?"  ← target":"")+"</td>"+
+      "<td>"+rp(komisi*v)+"</td>"+
+      "<td>"+rp(takeAt(v))+"</td>"+
+      "<td class='"+(net>=0?"pos":"neg")+"'>"+rp(net)+"</td></tr>";
+  }).join("");
+
+  // Kartu KPI: kurva DATA ASLI sepanjang volume 0→280
+  if (!sparks.s1) {
+    sparks.s1 = makeWave("spark1", "#5bc8f5", "#2f74f0");
+    sparks.s2 = makeWave("spark2", "#f6b44d", "#ea5a2a");
+    sparks.s3 = makeWave("spark3", "#f15bb5", "#9a4ce6");
+  }
+  const blankLabels = xs.map(() => "");
+  // Biru: total kontribusi kotor (naik seiring volume)
+  const seriesKontrib = xs.map(v => v * kontribusi);
+  // Oren: total biaya yang harus ditutup (datar → melonjak di titik bonus)
+  const seriesBiaya = xs.map(v => baseFixed + (v >= threshold ? bonus : 0));
+  // Ungu: laba bersih vs volume (ada tebing di titik bonus) — sama dgn chart utama
+  const seriesLaba = ys;
+
+  sparks.s1.data.labels = blankLabels; sparks.s1.data.datasets[0].data = normWave(seriesKontrib); sparks.s1.update();
+  sparks.s2.data.labels = blankLabels; sparks.s2.data.datasets[0].data = normWave(seriesBiaya);   sparks.s2.update();
+  sparks.s3.data.labels = blankLabels; sparks.s3.data.datasets[0].data = normWave(seriesLaba);    sparks.s3.update();
+}
+
+document.querySelectorAll("input").forEach(el => el.addEventListener("input", calc));
+window.addEventListener("load", calc);
+calc();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+</script>
+</body>
+</html>
