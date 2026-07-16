@@ -140,10 +140,56 @@
 
   .footnote { font-size: 11px; color: var(--soft); margin-top: 14px; line-height: 1.55; }
 
+  /* ===== Tab navigasi ===== */
+  .tabs { display: flex; gap: 6px; margin: 14px 0 18px; flex-wrap: wrap; }
+  .tab {
+    border: 1px solid var(--line); background: var(--card); color: var(--soft);
+    font: 700 13px 'Plus Jakarta Sans', sans-serif; padding: 9px 16px;
+    border-radius: 999px; cursor: pointer;
+  }
+  .tab.active { background: var(--red); border-color: var(--red); color: #fff; }
+  .tabpane { display: none; }
+  .tabpane.active { display: block; }
+
+  /* ===== Bar simpan / share ===== */
+  .savebar {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    background: var(--card); border-radius: 14px; padding: 10px 12px;
+    box-shadow: var(--shadow); margin-top: 14px;
+  }
+  .savebar button, .savebar select {
+    border: 1px solid var(--line); background: #fbfcfe; color: var(--ink);
+    font: 600 12px 'Plus Jakarta Sans', sans-serif; padding: 8px 12px;
+    border-radius: 10px; cursor: pointer;
+  }
+  .savebar button:hover { border-color: var(--orange); }
+  .savebar .msg { font-size: 11px; color: var(--green); font-weight: 700; }
+
+  /* ===== Kartu hasil kecil ===== */
+  .resultbox { background: var(--redbg); border: 1px solid #f2c9c5; border-radius: 14px; padding: 13px 15px; margin-top: 12px; font-size: 13px; line-height: 1.7; }
+  .resultbox b { color: var(--red); }
+  .resultbox.green { background: var(--greenbg); border-color: #bfe6cf; }
+  .resultbox.green b { color: var(--green); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; margin-top: 16px; }
+  .grid2 > .card { margin-top: 0; }
+
+  /* ===== Tabel perbandingan skenario ===== */
+  table.compare td:first-child { color: var(--soft); font-weight: 600; font-size: 12px; }
+  table.compare td.best { color: var(--green); font-weight: 800; }
+  table.compare th.hl { color: var(--red); }
+
+  /* ===== Multi-SKU ===== */
+  input.sku-name { width: 100%; font: 700 13px 'Plus Jakarta Sans', sans-serif; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; color: var(--ink); }
+  input.sku-num { width: 90px; font: 600 13px 'Plus Jakarta Sans', sans-serif; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; text-align: right; color: var(--ink); }
+  input.sku-name:focus, input.sku-num:focus { outline: none; border-color: var(--blue); }
+
   @media (max-width: 760px) {
     .grid { grid-template-columns: 1fr; }
+    .grid2 { grid-template-columns: 1fr; }
     .kpis { grid-template-columns: 1fr; }
     h1 { font-size: 22px; }
+    .chartcard { overflow-x: auto; }
   }
 </style>
 
@@ -161,6 +207,23 @@
     <img class="logo-img" src="logo.png" alt="Kerupuk Jumbo Sari Udang" />
   </div>
   <h1>Distributon Operational Calculator</h1>
+
+  <div class="savebar">
+    <button type="button" onclick="saveScenario()">💾 Simpan skenario</button>
+    <select id="scn-select" onchange="loadScenario(this.value)"><option value="">— Muat skenario tersimpan —</option></select>
+    <button type="button" onclick="deleteScenario()">🗑 Hapus</button>
+    <button type="button" onclick="shareLink()">🔗 Salin link skenario</button>
+    <span class="msg" id="save-msg"></span>
+  </div>
+
+  <nav class="tabs">
+    <button type="button" class="tab active" data-pane="pane-utama" onclick="switchTab(this)">Kalkulator</button>
+    <button type="button" class="tab" data-pane="pane-rencana" onclick="switchTab(this)">Perencanaan</button>
+    <button type="button" class="tab" data-pane="pane-analisis" onclick="switchTab(this)">Analisis</button>
+    <button type="button" class="tab" data-pane="pane-sku" onclick="switchTab(this)">Multi-SKU &amp; Modal</button>
+  </nav>
+
+  <div class="tabpane active" id="pane-utama">
 
   <div class="kpis">
     <div class="kpi blue">
@@ -262,6 +325,110 @@
     </table>
   </div>
 
+  </div><!-- /pane-utama -->
+
+  <!-- ============ TAB PERENCANAAN ============ -->
+  <div class="tabpane" id="pane-rencana">
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Rute &amp; Coverage — butuh berapa salesman?</h3>
+        <label><span>Jumlah toko yang mau di-cover</span><div class="inrow"><input type="number" id="cvToko" value="300" step="10"><em>toko</em></div></label>
+        <label><span>Kunjungan per salesman /hari</span><div class="inrow"><input type="number" id="cvKunjungan" value="30" step="1"><em>toko/hari</em></div></label>
+        <label><span>Frekuensi kunjungan per toko /bulan</span><div class="inrow"><input type="number" id="cvFrek" value="2" step="1"><em>kali</em></div></label>
+        <div class="resultbox" id="cv-result"></div>
+      </div>
+
+      <div class="card">
+        <h3>Effective Call — target volume realistis?</h3>
+        <p class="note">Volume bukan angka dari langit: kunjungan × % toko yang beli × karton per transaksi.</p>
+        <label><span>% toko yang beli per kunjungan (effective call)</span><div class="inrow"><input type="number" id="ecPct" value="40" step="5" min="0" max="100"><em>%</em></div></label>
+        <label><span>Rata-rata karton per transaksi</span><div class="inrow"><input type="number" id="ecKarton" value="3" step="1"></div></label>
+        <div class="resultbox" id="ec-result"></div>
+      </div>
+    </div>
+
+    <div class="card chartcard">
+      <h3>Break-even Timeline — berapa lama sampai untung &amp; butuh modal berapa?</h3>
+      <p class="note">Bulan-bulan awal volume masih kecil karena toko belum kenal. Grafik ini memproyeksikan laba kumulatif: titik terdalam = modal kerja yang harus kamu siapkan untuk menanggung rugi operasional sampai break-even.</p>
+      <div class="grid2" style="margin-top:0">
+        <label><span>Volume bulan pertama /salesman</span><div class="inrow"><input type="number" id="tlAwal" value="40" step="5"><em>karton</em></div></label>
+        <label><span>Pertumbuhan volume /bulan</span><div class="inrow"><input type="number" id="tlTumbuh" value="15" step="5"><em>karton</em></div></label>
+      </div>
+      <div class="resultbox" id="tl-result" style="margin-bottom:10px"></div>
+      <canvas id="timelinechart" height="110"></canvas>
+    </div>
+
+  </div><!-- /pane-rencana -->
+
+  <!-- ============ TAB ANALISIS ============ -->
+  <div class="tabpane" id="pane-analisis">
+
+    <div class="card chartcard" style="margin-top:0">
+      <h3>Perbandingan model distribusi /bulan</h3>
+      <p class="note">Tiga jalur dengan volume total yang sama (dari slider di tab Kalkulator). Hybrid = sebagian volume lewat agen/sub-distributor tanpa biaya tetap salesman, sisanya tetap lewat salesman sendiri.</p>
+      <div class="grid2" style="margin-top:0">
+        <label><span>% volume lewat agen (skema hybrid)</span><div class="inrow"><input type="number" id="hyPct" value="50" step="10" min="0" max="100"><em>%</em></div></label>
+        <label><span>Potongan untuk agen /karton</span><div class="inrow"><input type="number" id="hyPotongan" value="15000" step="1000"></div></label>
+      </div>
+      <table class="compare">
+        <thead><tr><th></th><th class="hl">Distribusi sendiri</th><th>Jual ke pihak ketiga</th><th>Hybrid (agen + salesman)</th></tr></thead>
+        <tbody id="compare-body"></tbody>
+      </table>
+      <p class="chart-hint" id="compare-note"></p>
+    </div>
+
+    <div class="card chartcard">
+      <h3>Sensitivitas — variabel mana yang paling menggerakkan laba?</h3>
+      <p class="note">Setiap variabel digeser ±10% (yang lain tetap). Batang terpanjang = variabel yang paling penting kamu kontrol / nego.</p>
+      <canvas id="tornadochart" height="150"></canvas>
+    </div>
+
+    <div class="card chartcard">
+      <h3>Komisi bertingkat vs flat</h3>
+      <p class="note">Bandingkan komisi flat (dari tab Kalkulator) dengan skema bertingkat: rate rendah sampai batas tertentu, rate tinggi di atasnya — memotivasi salesman ngejar volume tanpa membunuh margin di volume kecil.</p>
+      <div class="grid2" style="margin-top:0">
+        <label><span>Tier 1: komisi /karton sampai batas</span><div class="inrow"><input type="number" id="trRate1" value="4000" step="500"></div></label>
+        <label><span>Batas tier 1</span><div class="inrow"><input type="number" id="trLimit" value="100" step="5"><em>karton</em></div></label>
+        <label><span>Tier 2: komisi /karton di atas batas</span><div class="inrow"><input type="number" id="trRate2" value="6000" step="500"></div></label>
+      </div>
+      <table>
+        <thead><tr><th>Karton/bln</th><th>Take-home flat</th><th>Take-home tier</th><th>Laba flat</th><th>Laba tier</th></tr></thead>
+        <tbody id="tier-body"></tbody>
+      </table>
+      <p class="chart-hint" id="tier-note"></p>
+    </div>
+
+  </div><!-- /pane-analisis -->
+
+  <!-- ============ TAB MULTI-SKU & MODAL ============ -->
+  <div class="tabpane" id="pane-sku">
+
+    <div class="card chartcard" style="margin-top:0">
+      <div class="tablehead">
+        <h3>Multi-SKU — sebar biaya tetap ke beberapa produk</h3>
+        <button type="button" class="addbtn" onclick="addSku()">+ Tambah produk</button>
+      </div>
+      <p class="note">Satu salesman yang sama membawa beberapa produk. Biaya tetap dibagi proporsional volume — inilah kenapa distributor multi-produk bisa untung dengan BEP per produk yang jauh lebih rendah.</p>
+      <table>
+        <thead><tr><th>Produk</th><th>Kontribusi /karton</th><th>Volume /bln</th><th>Share biaya tetap</th><th>Laba produk</th><th></th></tr></thead>
+        <tbody id="sku-body"></tbody>
+      </table>
+      <div class="resultbox" id="sku-result"></div>
+    </div>
+
+    <div class="card chartcard">
+      <h3>Piutang &amp; Modal Kerja — uang yang "nyangkut"</h3>
+      <p class="note">Distribusi kecil jarang mati karena rugi — lebih sering karena kehabisan kas: barang sudah keluar, uang belum masuk. Hitung berapa modal yang terikat di piutang toko dan stok.</p>
+      <div class="grid2" style="margin-top:0">
+        <label><span>Tempo pembayaran toko</span><div class="inrow"><input type="number" id="wcTempo" value="21" step="7"><em>hari</em></div></label>
+        <label><span>% penjualan yang pakai tempo</span><div class="inrow"><input type="number" id="wcPct" value="80" step="10" min="0" max="100"><em>%</em></div></label>
+        <label><span>Stok di gudang setara</span><div class="inrow"><input type="number" id="wcStok" value="7" step="1"><em>hari jualan</em></div></label>
+      </div>
+      <div class="resultbox" id="wc-result"></div>
+    </div>
+
+  </div><!-- /pane-sku -->
 
 </div>
 
@@ -291,17 +458,17 @@ function clampVol(v) { return Math.max(0, Math.min(280, Math.round(Number(v) || 
 
 window.updateScenario = function (idx, value) {
   customVols[idx] = clampVol(value);
-  calc();
+  calcAll();
 };
 window.removeScenario = function (idx) {
   if (customVols.length <= 1) return;
   customVols.splice(idx, 1);
-  calc();
+  calcAll();
 };
 window.addScenario = function () {
   const last = customVols[customVols.length - 1] ?? 100;
   customVols.push(clampVol(last + 25));
-  calc();
+  calcAll();
 };
 
 // Garis penanda (target bonus & volume saat ini) digambar langsung di atas mainchart
@@ -515,9 +682,318 @@ function calc() {
   sparks.s3.data.labels = blankLabels; sparks.s3.data.datasets[0].data = normWave(seriesLaba);    sparks.s3.update();
 }
 
-document.querySelectorAll("input").forEach(el => el.addEventListener("input", calc));
-window.addEventListener("load", calc);
-calc();
+/* ================= TAB NAVIGASI ================= */
+window.switchTab = function (btn) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t === btn));
+  document.querySelectorAll(".tabpane").forEach(p => p.classList.toggle("active", p.id === btn.dataset.pane));
+  calcAll();
+  [mainChart, timelineChart, tornadoChart].forEach(c => { if (c) c.resize(); });
+};
+
+/* ================= PERENCANAAN ================= */
+let timelineChart;
+
+function calcRencana() {
+  const hari = num("hari"), sales = num("sales"), overhead = num("overhead");
+  const baseFixed = num("gaji") + (num("sewa") + num("bensin") + num("makan")) * hari;
+  const fixedBonus = baseFixed + num("bonus");
+
+  // #1 Coverage
+  const toko = num("cvToko"), kunj = num("cvKunjungan"), frek = num("cvFrek");
+  const kebutuhan = toko * frek;                    // kunjungan yang dibutuhkan /bulan
+  const kapasitas = kunj * hari;                    // kunjungan yang sanggup 1 salesman /bulan
+  const butuh = kapasitas > 0 ? Math.ceil(kebutuhan / kapasitas) : 0;
+  const tokoPerSales = butuh > 0 ? Math.round(toko / butuh) : 0;
+  $("cv-result").innerHTML =
+    toko.toLocaleString("id-ID") + " toko × " + frek + "× kunjungan = <b>" + kebutuhan.toLocaleString("id-ID") + " kunjungan/bulan</b>.<br>" +
+    "Kapasitas 1 salesman: " + kunj + " × " + hari + " hari = " + kapasitas.toLocaleString("id-ID") + " kunjungan/bulan.<br>" +
+    "Butuh <b>" + butuh + " salesman</b> (≈ " + tokoPerSales.toLocaleString("id-ID") + " toko/orang) · biaya tim: <b>" +
+    rp(butuh * baseFixed) + "</b> – <b>" + rp(butuh * fixedBonus) + "</b> /bulan (tanpa – dengan bonus).";
+
+  // #2 Effective call
+  const pct = num("ecPct"), krtTran = num("ecKarton"), volume = num("volume"), threshold = num("threshold");
+  const volPotensi = kunj * hari * (pct / 100) * krtTran;
+  const cukup = volPotensi >= threshold;
+  $("ec-result").className = "resultbox " + (cukup ? "green" : "");
+  $("ec-result").innerHTML =
+    kunj + " kunjungan/hari × " + hari + " hari × " + pct + "% beli × " + krtTran + " karton = kapasitas jual <b>" +
+    Math.round(volPotensi).toLocaleString("id-ID") + " karton/bulan</b> per salesman.<br>" +
+    (cukup
+      ? "✓ Target bonus " + threshold + " karton <b>masuk akal</b> di asumsi lapangan ini (sisa ruang " + Math.round(volPotensi - threshold).toLocaleString("id-ID") + " karton)."
+      : "✗ Target bonus " + threshold + " karton <b>tidak realistis</b> dengan asumsi ini — naikkan effective call, karton/transaksi, atau turunkan target.");
+
+  // #3 BEP timeline
+  const awal = num("tlAwal"), tumbuh = num("tlTumbuh");
+  const labels = [], cums = [];
+  let cum = 0, bepBulan = null, minCum = 0, minBulan = 0;
+  for (let m = 1; m <= 24; m++) {
+    const vol = awal + tumbuh * (m - 1);
+    cum += netAt(vol) * sales - overhead;
+    labels.push("Bln " + m); cums.push(cum);
+    if (cum < minCum) { minCum = cum; minBulan = m; }
+    if (bepBulan === null && cum >= 0) bepBulan = m;
+  }
+  $("tl-result").innerHTML = bepBulan
+    ? "Break-even kumulatif di <b>bulan ke-" + bepBulan + "</b>. Rugi terdalam " + (minBulan ? "di bulan ke-" + minBulan : "") +
+      ": <b>" + rp(minCum) + "</b> → siapkan modal kerja operasional minimal <b>" + rp(Math.abs(minCum)) + "</b> untuk bertahan sampai untung."
+    : "Dalam 24 bulan <b>belum break-even</b> (kumulatif akhir " + rp(cum) + "). Naikkan pertumbuhan volume atau perbaiki margin dulu.";
+
+  const canvas = $("timelinechart");
+  if (!timelineChart && canvas.offsetParent !== null) {
+    timelineChart = new Chart(canvas.getContext("2d"), {
+      type: "line",
+      data: { labels, datasets: [{ data: cums, borderColor: "#3b6ff5", borderWidth: 2.5, tension: .3, pointRadius: 0,
+        fill: true, backgroundColor: (x) => { const {ctx, chartArea} = x.chart; if(!chartArea) return "transparent"; return grad(ctx, chartArea, [[0,"rgba(59,111,245,.25)"],[1,"rgba(59,111,245,0)"]]); } }] },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: {display:false}, tooltip: { callbacks: { label: i => "Laba kumulatif: " + rp(i.raw) } } },
+        scales: { x: { grid: {color:"#f0f2f7"}, ticks: {color:"#9aa3b0", maxTicksLimit: 12} },
+                  y: { grid: {color:"#f0f2f7"}, ticks: {color:"#9aa3b0", callback: v => rpShort(v)} } } }
+    });
+    canvas.parentElement.style.height = "";
+    canvas.style.height = "260px";
+  } else if (timelineChart) {
+    timelineChart.data.labels = labels; timelineChart.data.datasets[0].data = cums; timelineChart.update();
+  }
+}
+
+/* ================= ANALISIS ================= */
+let tornadoChart;
+
+// Total laba distribusi /bulan dengan sebagian input dioverride (untuk tornado)
+function totalNetWith(o) {
+  o = o || {};
+  const g = k => (k in o) ? o[k] : num(k);
+  const margin = g("hargaToko") - g("hargaPabrik");
+  const kontribusi = margin - g("komisi") - num("kirim");
+  const harian = (num("sewa") + num("bensin") + num("makan")) * ("harianF" in o ? o.harianF : 1);
+  const baseFixed = g("gaji") + harian * num("hari");
+  const v = g("volume");
+  const net = v * kontribusi - baseFixed - (v >= num("threshold") ? g("bonus") : 0);
+  return net * num("sales") - num("overhead");
+}
+
+function calcAnalisis() {
+  const hargaPabrik = num("hargaPabrik"), hargaToko = num("hargaToko"), komisi = num("komisi"),
+        kirim = num("kirim"), gaji = num("gaji"), hari = num("hari"), bonus = num("bonus"),
+        threshold = num("threshold"), sales = num("sales"), overhead = num("overhead"), volume = num("volume");
+  const margin = hargaToko - hargaPabrik;
+  const kontribusi = margin - komisi - kirim;
+  const baseFixed = gaji + (num("sewa") + num("bensin") + num("makan")) * hari;
+
+  // #4 Perbandingan model
+  const volTotal = volume * sales;
+  const labaSendiri = totalNetWith({});
+  const pctA = Math.min(100, Math.max(0, num("hyPct"))) / 100, potongan = num("hyPotongan");
+  const marginAgen = margin - potongan - kirim;
+  const volSper = volume * (1 - pctA);
+  const labaHyS = (volSper * kontribusi - baseFixed - (volSper >= threshold ? bonus : 0)) * sales;
+  const labaHyA = volTotal * pctA * marginAgen;
+  const labaHybrid = labaHyS + labaHyA - overhead;
+  const fmtBest = (v, best) => "<td class='" + (best ? "best" : (v < 0 ? "neg" : "")) + "'>" + rp(v) + "</td>";
+  const maxLaba = Math.max(labaSendiri, 0, labaHybrid);
+  $("compare-body").innerHTML =
+    "<tr><td>Volume /bulan</td><td>" + volTotal + " karton</td><td>" + volTotal + " karton</td><td>" +
+      Math.round(volTotal * (1 - pctA)) + " salesman + " + Math.round(volTotal * pctA) + " agen</td></tr>" +
+    "<tr><td>Margin efektif /karton</td><td>" + rp(kontribusi) + "</td><td>Rp 0 (harga pabrik)</td><td>" +
+      rp(kontribusi) + " / " + rp(marginAgen) + "</td></tr>" +
+    "<tr><td>Biaya tetap /bulan</td><td>" + rp(baseFixed * sales + overhead) + "</td><td>Rp 0</td><td>" + rp(baseFixed * sales + overhead) + "</td></tr>" +
+    "<tr><td><b>Laba /bulan</b></td>" + fmtBest(labaSendiri, labaSendiri === maxLaba) +
+      fmtBest(0, 0 === maxLaba) + fmtBest(labaHybrid, labaHybrid === maxLaba) + "</tr>";
+  $("compare-note").textContent = labaHybrid > labaSendiri && labaHybrid > 0
+    ? "Di angka sekarang, hybrid paling untung — agen menyerap volume tanpa menambah biaya tetap."
+    : labaSendiri > 0
+      ? "Di angka sekarang, distribusi sendiri paling untung."
+      : "Dua-duanya masih rugi vs jual ke pihak ketiga — perbaiki margin atau volume dulu.";
+
+  // #5 Tornado ±10%
+  const base = labaSendiri;
+  const vars = [
+    { label: "Harga jual ke toko",  o: f => ({ hargaToko: hargaToko * f }) },
+    { label: "Harga beli pabrik",   o: f => ({ hargaPabrik: hargaPabrik * f }) },
+    { label: "Volume penjualan",    o: f => ({ volume: volume * f }) },
+    { label: "Komisi /karton",      o: f => ({ komisi: komisi * f }) },
+    { label: "Gaji pokok",          o: f => ({ gaji: gaji * f }) },
+    { label: "Biaya harian (motor+bensin+makan)", o: f => ({ harianF: f }) },
+    { label: "Bonus",               o: f => ({ bonus: bonus * f }) }
+  ].map(v => {
+    const lo = totalNetWith(v.o(0.9)), hi = totalNetWith(v.o(1.1));
+    return { label: v.label, lo: Math.min(lo, hi), hi: Math.max(lo, hi), span: Math.abs(hi - lo) };
+  }).sort((a, b) => b.span - a.span);
+
+  const tCanvas = $("tornadochart");
+  const tData = {
+    labels: vars.map(v => v.label),
+    datasets: [{ data: vars.map(v => [v.lo, v.hi]),
+      backgroundColor: vars.map((_, i) => i === 0 ? "rgba(176,42,36,.75)" : "rgba(232,120,28,.55)"),
+      borderRadius: 6, barThickness: 18 }]
+  };
+  if (!tornadoChart && tCanvas.offsetParent !== null) {
+    tornadoChart = new Chart(tCanvas.getContext("2d"), {
+      type: "bar",
+      data: tData,
+      options: { indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: {display:false},
+          tooltip: { callbacks: { label: i => "Laba " + rp(i.raw[0]) + " s/d " + rp(i.raw[1]) + " (±10%)" } } },
+        scales: { x: { grid: {color:"#f0f2f7"}, ticks: {color:"#9aa3b0", callback: v => rpShort(v)} },
+                  y: { grid: {display:false}, ticks: {color:"#171b23", font: {size: 11, weight: 600}} } } }
+    });
+    tCanvas.style.height = "300px";
+  } else if (tornadoChart) {
+    tornadoChart.data = tData; tornadoChart.update();
+  }
+
+  // #8 Komisi bertingkat
+  const r1 = num("trRate1"), lim = num("trLimit"), r2 = num("trRate2");
+  const komisiTier = v => Math.min(v, lim) * r1 + Math.max(0, v - lim) * r2;
+  const takeFlat = v => gaji + (v >= threshold ? bonus : 0) + num("sewa") * hari + komisi * v;
+  const takeTier = v => gaji + (v >= threshold ? bonus : 0) + num("sewa") * hari + komisiTier(v);
+  const netFlat = v => netAt(v);
+  const netTier = v => v * (margin - kirim) - komisiTier(v) - baseFixed - (v >= threshold ? bonus : 0);
+  const vols = Array.from(new Set([80, 100, 120, 150, 200, volume])).sort((a, b) => a - b);
+  $("tier-body").innerHTML = vols.map(v => {
+    const nf = netFlat(v), nt = netTier(v);
+    return "<tr" + (v === volume ? " class='target'" : "") + "><td>" + v + (v === volume ? " ← sekarang" : "") + "</td>" +
+      "<td>" + rp(takeFlat(v)) + "</td><td>" + rp(takeTier(v)) + "</td>" +
+      "<td class='" + (nf >= 0 ? "pos" : "neg") + "'>" + rp(nf) + "</td>" +
+      "<td class='" + (nt >= 0 ? "pos" : "neg") + "'>" + rp(nt) + "</td></tr>";
+  }).join("");
+  const diff = netTier(volume) - netFlat(volume);
+  $("tier-note").textContent = "Di volume sekarang (" + volume + " karton), skema bertingkat " +
+    (diff >= 0 ? "menambah laba distribusi " + rp(diff) : "mengurangi laba distribusi " + rp(Math.abs(diff))) +
+    " /bulan dibanding flat.";
+}
+
+/* ================= MULTI-SKU & MODAL ================= */
+let skuRows = null;
+
+window.addSku = function () {
+  skuRows.push({ name: "Produk baru", kontrib: 15000, vol: 50 });
+  calcAll();
+};
+window.removeSku = function (i) {
+  if (skuRows.length <= 1) return;
+  skuRows.splice(i, 1);
+  calcAll();
+};
+window.updateSku = function (i, field, val) {
+  skuRows[i][field] = field === "name" ? val : (Number(val) || 0);
+  calcAll();
+};
+
+function calcSku() {
+  const margin = num("hargaToko") - num("hargaPabrik");
+  if (!skuRows) {
+    skuRows = [{ name: "Kerupuk Jumbo SUJ", kontrib: margin - num("komisi") - num("kirim"), vol: num("volume") }];
+  }
+  const hari = num("hari"), sales = num("sales"), overhead = num("overhead");
+  const baseFixed = num("gaji") + (num("sewa") + num("bensin") + num("makan")) * hari;
+  const totVol = skuRows.reduce((s, r) => s + r.vol, 0);
+  const pakaiBonus = totVol >= num("threshold");
+  const fixed = baseFixed + (pakaiBonus ? num("bonus") : 0);
+  const totKontrib = skuRows.reduce((s, r) => s + r.vol * r.kontrib, 0);
+  const labaPerSales = totKontrib - fixed;
+  const totalLaba = labaPerSales * sales - overhead;
+
+  $("sku-body").innerHTML = skuRows.map((r, i) => {
+    const share = totVol > 0 ? fixed * (r.vol / totVol) : 0;
+    const laba = r.vol * r.kontrib - share;
+    return "<tr>" +
+      "<td><input class='sku-name' value=\"" + String(r.name).replace(/"/g, "&quot;") + "\" onchange='updateSku(" + i + ",\"name\",this.value)'></td>" +
+      "<td><input type='number' class='sku-num' value='" + r.kontrib + "' step='1000' onchange='updateSku(" + i + ",\"kontrib\",this.value)'></td>" +
+      "<td><input type='number' class='sku-num' value='" + r.vol + "' step='5' onchange='updateSku(" + i + ",\"vol\",this.value)'></td>" +
+      "<td>" + rp(share) + "</td>" +
+      "<td class='" + (laba >= 0 ? "pos" : "neg") + "'>" + rp(laba) + "</td>" +
+      "<td class='aksi'><button type='button' class='rowbtn' onclick='removeSku(" + i + ")' title='Hapus produk'>&times;</button></td></tr>";
+  }).join("");
+
+  $("sku-result").className = "resultbox " + (totalLaba >= 0 ? "green" : "");
+  $("sku-result").innerHTML =
+    "Total " + skuRows.length + " produk · " + totVol.toLocaleString("id-ID") + " karton/bulan per salesman → kontribusi <b>" + rp(totKontrib) +
+    "</b> − biaya tetap <b>" + rp(fixed) + "</b> = laba <b>" + rp(labaPerSales) + "</b> /salesman.<br>" +
+    "Total laba distribusi (× " + sales + " salesman − overhead): <b>" + rp(totalLaba) + "</b> /bulan. " +
+    (skuRows.length > 1 ? "Makin banyak SKU yang dibawa salesman yang sama, makin ringan beban biaya tetap tiap produk." : "Coba tambah produk kedua — biaya tetap yang sama akan terbagi.");
+
+  // #7 Piutang & modal kerja
+  const volume = num("volume"), hargaToko = num("hargaToko"), hargaPabrik = num("hargaPabrik");
+  const tempo = num("wcTempo"), pctT = Math.min(100, Math.max(0, num("wcPct"))) / 100, stokHari = num("wcStok");
+  const omzet = volume * sales * hargaToko;
+  const piutang = omzet * pctT * tempo / 30;
+  const stok = volume * sales * hargaPabrik * stokHari / 30;
+  const modal = piutang + stok;
+  const laba = totalNetWith({});
+  $("wc-result").innerHTML =
+    "Omzet " + rp(omzet) + " /bulan.<br>" +
+    "Piutang nyangkut di toko: " + Math.round(pctT * 100) + "% × tempo " + tempo + " hari = <b>" + rp(piutang) + "</b>.<br>" +
+    "Modal terikat di stok (" + stokHari + " hari jualan, harga pabrik): <b>" + rp(stok) + "</b>.<br>" +
+    "Total modal kerja yang harus muter terus: <b>" + rp(modal) + "</b>" +
+    (laba > 0 ? " — setara " + (modal / laba).toFixed(1) + " bulan laba distribusi." : ".") +
+    "<br>Kas segini harus ada <i>di luar</i> modal beli barang pertama — kalau tidak, jualan makin laris justru makin cekik kas.";
+}
+
+/* ================= SIMPAN / MUAT / SHARE ================= */
+const SCN_KEY = "suj-scn";
+
+function collectState() {
+  const inputs = {};
+  document.querySelectorAll("input[type=number][id], input[type=range][id]").forEach(el => { inputs[el.id] = el.value; });
+  return { inputs, customVols: customVols.slice(), skuRows: skuRows ? JSON.parse(JSON.stringify(skuRows)) : null };
+}
+function applyState(st) {
+  if (!st) return;
+  Object.entries(st.inputs || {}).forEach(([id, v]) => { const el = $(id); if (el) el.value = v; });
+  if (Array.isArray(st.customVols)) customVols = st.customVols.slice();
+  if (Array.isArray(st.skuRows)) skuRows = st.skuRows;
+  calcAll();
+}
+function readStore() { try { return JSON.parse(localStorage.getItem(SCN_KEY)) || {}; } catch (e) { return {}; } }
+function refreshScnSelect() {
+  const sel = $("scn-select"), names = Object.keys(readStore());
+  sel.innerHTML = "<option value=''>— Muat skenario tersimpan —</option>" +
+    names.map(n => "<option value=\"" + n.replace(/"/g, "&quot;") + "\">" + n + "</option>").join("");
+}
+function flashMsg(t) { $("save-msg").textContent = t; setTimeout(() => { $("save-msg").textContent = ""; }, 2500); }
+
+window.saveScenario = function () {
+  const name = prompt("Nama skenario:", "Skenario " + new Date().toLocaleDateString("id-ID"));
+  if (!name) return;
+  const store = readStore(); store[name] = collectState();
+  localStorage.setItem(SCN_KEY, JSON.stringify(store));
+  refreshScnSelect(); $("scn-select").value = name; flashMsg("✓ Tersimpan");
+};
+window.loadScenario = function (name) {
+  if (!name) return;
+  applyState(readStore()[name]); flashMsg("✓ Dimuat: " + name);
+};
+window.deleteScenario = function () {
+  const name = $("scn-select").value;
+  if (!name) { flashMsg("Pilih skenario dulu"); return; }
+  if (!confirm("Hapus skenario \"" + name + "\"?")) return;
+  const store = readStore(); delete store[name];
+  localStorage.setItem(SCN_KEY, JSON.stringify(store));
+  refreshScnSelect(); flashMsg("✓ Dihapus");
+};
+window.shareLink = function () {
+  const s = btoa(unescape(encodeURIComponent(JSON.stringify(collectState()))));
+  const url = location.origin + location.pathname + "?s=" + s;
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
+    .then(() => flashMsg("✓ Link disalin — tinggal paste di WhatsApp"))
+    .catch(() => { prompt("Salin link ini:", url); });
+};
+function loadFromUrl() {
+  const s = new URLSearchParams(location.search).get("s");
+  if (!s) return;
+  try { applyState(JSON.parse(decodeURIComponent(escape(atob(s))))); flashMsg("✓ Skenario dari link dimuat"); } catch (e) {}
+}
+
+/* ================= WIRING ================= */
+function calcAll() { calc(); calcRencana(); calcAnalisis(); calcSku(); }
+
+document.addEventListener("input", (e) => {
+  if (e.target.matches(".vol-edit, .sku-num, .sku-name")) return; // punya handler onchange sendiri
+  if (e.target.matches("input")) calcAll();
+});
+window.addEventListener("load", () => { calcAll(); loadFromUrl(); refreshScnSelect(); });
+calcAll();
 </script>
 
 <script>
