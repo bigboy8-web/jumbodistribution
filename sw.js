@@ -1,4 +1,4 @@
-const CACHE = 'suj-distribusi-v2';
+const CACHE = 'suj-distribusi-v3';
 const ASSETS = [
   './',
   './index.html',

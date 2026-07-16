@@ -106,6 +106,17 @@
 
   .chartcard { margin-top: 16px; }
   .chartcard p.note { margin: 0 0 6px; font-size: 12px; color: var(--soft); }
+  .chart-hint { margin: 8px 0 0; font-size: 11px; color: var(--soft); }
+  #mainchart { cursor: pointer; }
+
+  .tablehead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .tablehead h3 { margin: 0; }
+  .addbtn {
+    border: 1px dashed var(--blue); background: #fff; color: var(--blue);
+    font: inherit; font-weight: 700; font-size: 12px; padding: 6px 12px;
+    border-radius: 999px; cursor: pointer;
+  }
+  .addbtn:hover { background: #eef2ff; }
 
   table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
   th { font-size: 11px; color: var(--soft); font-weight: 600; padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: right; }
@@ -115,6 +126,17 @@
   tr.target { background: var(--redbg); }
   td.pos { color: var(--green); font-weight: 800; }
   td.neg { color: var(--red); font-weight: 800; }
+  td.aksi { text-align: center; padding: 4px; width: 28px; }
+  input.vol-edit {
+    width: 62px; font: inherit; font-weight: 700; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; text-align: right;
+  }
+  input.vol-edit:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,111,245,.18); }
+  .rowbtn {
+    border: none; background: transparent; color: var(--soft); font-size: 16px;
+    line-height: 1; cursor: pointer; padding: 2px 7px; border-radius: 6px;
+  }
+  .rowbtn:hover { background: var(--redbg); color: var(--red); }
 
   .footnote { font-size: 11px; color: var(--soft); margin-top: 14px; line-height: 1.55; }
 
@@ -225,13 +247,17 @@
     <h3>Laba bersih per salesman vs volume</h3>
     <p class="note" id="chart-note"></p>
     <canvas id="mainchart" height="110"></canvas>
+    <p class="chart-hint">Klik di mana saja pada grafik untuk memindahkan slider volume ke titik itu. Garis oranye putus-putus = target bonus, titik biru = posisi volume saat ini.</p>
   </div>
 
   <div class="card chartcard">
-    <h3>Tabel komisi & skenario volume</h3>
+    <div class="tablehead">
+      <h3>Tabel komisi & skenario volume</h3>
+      <button type="button" class="addbtn" onclick="addScenario()">+ Tambah skenario</button>
+    </div>
     <p class="note" id="tabel-note"></p>
     <table>
-      <thead><tr><th>Karton/bln</th><th>Komisi salesman</th><th>Take-home</th><th>Laba distribusi/salesman</th></tr></thead>
+      <thead><tr><th>Karton/bln</th><th>Komisi salesman</th><th>Take-home</th><th>Laba distribusi/salesman</th><th></th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
@@ -259,6 +285,58 @@ function kpiRp(n) {
 }
 
 let mainChart, sparks = {};
+let customVols = [100, 130, 150, 200, 250];
+
+function clampVol(v) { return Math.max(0, Math.min(280, Math.round(Number(v) || 0))); }
+
+window.updateScenario = function (idx, value) {
+  customVols[idx] = clampVol(value);
+  calc();
+};
+window.removeScenario = function (idx) {
+  if (customVols.length <= 1) return;
+  customVols.splice(idx, 1);
+  calc();
+};
+window.addScenario = function () {
+  const last = customVols[customVols.length - 1] ?? 100;
+  customVols.push(clampVol(last + 25));
+  calc();
+};
+
+// Garis penanda (target bonus & volume saat ini) digambar langsung di atas mainchart
+const markerLines = {
+  id: "markerLines",
+  afterDatasetsDraw(chart) {
+    const vol = num("volume"), threshold = num("threshold");
+    const { ctx, chartArea, scales: { x, y } } = chart;
+    if (!chartArea) return;
+    const drawLine = (val, color, dashed) => {
+      const px = x.getPixelForValue(val);
+      if (px < chartArea.left || px > chartArea.right) return;
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = dashed ? 1.5 : 2;
+      if (dashed) ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(px, chartArea.top);
+      ctx.lineTo(px, chartArea.bottom);
+      ctx.stroke();
+      ctx.restore();
+      return px;
+    };
+    drawLine(threshold, "rgba(232,120,28,.7)", true);
+    const volPx = drawLine(vol, "rgba(59,111,245,.9)", false);
+    if (volPx != null) {
+      const yPx = y.getPixelForValue(netAt(vol));
+      ctx.save();
+      ctx.fillStyle = "#3b6ff5";
+      ctx.beginPath(); ctx.arc(volPx, yPx, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+    }
+  }
+};
 
 function grad(ctx, area, stops) {
   const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
@@ -296,6 +374,15 @@ function normWave(a) {
   return a.map(x => 8 + 84 * (x - mn) / d);
 }
 
+// Laba bersih distribusi per salesman pada volume tertentu, dibaca langsung dari
+// input saat ini — dipakai baik oleh calc() maupun plugin garis penanda di chart.
+function netAt(v) {
+  const kontribusi = (num("hargaToko") - num("hargaPabrik")) - num("komisi") - num("kirim");
+  const baseFixed = num("gaji") + (num("sewa") + num("bensin") + num("makan")) * num("hari");
+  const bonus = num("bonus"), threshold = num("threshold");
+  return v * kontribusi - baseFixed - (v >= threshold ? bonus : 0);
+}
+
 function calc() {
   const hargaPabrik=num("hargaPabrik"), hargaToko=num("hargaToko"), gaji=num("gaji"),
         komisi=num("komisi"), sewa=num("sewa"), bensin=num("bensin"), makan=num("makan"),
@@ -309,7 +396,6 @@ function calc() {
   const fixedBonus = baseFixed + bonus;
   const bepNo = kontribusi > 0 ? baseFixed / kontribusi : Infinity;
   const bepBon = kontribusi > 0 ? fixedBonus / kontribusi : Infinity;
-  const netAt = v => v * kontribusi - baseFixed - (v >= threshold ? bonus : 0);
   const takeAt = v => gaji + (v >= threshold ? bonus : 0) + sewa * hari + komisi * v;
   const netPerSales = netAt(volume);
   const totalNet = netPerSales * sales - overhead;
@@ -376,20 +462,38 @@ function calc() {
         plugins: { legend: {display:false},
           tooltip: { callbacks: { title: i => i[0].label + " karton/bln", label: i => "Laba/salesman: " + rp(i.raw) } } },
         scales: { x: { grid: {color:"#f0f2f7"}, ticks: {color:"#9aa3b0", maxTicksLimit: 10}, title:{display:true,text:"karton/bulan",color:"#9aa3b0"} },
-                  y: { grid: {color:"#f0f2f7"}, ticks: {color:"#9aa3b0", callback: v => rpShort(v)} } } }
+                  y: { grid: {color:"#f0f2f7"}, ticks: {color:"#9aa3b0", callback: v => rpShort(v)} } },
+        onClick: (evt, _elements, chart) => {
+          const pos = Chart.helpers.getRelativePosition(evt, chart);
+          const raw = chart.scales.x.getValueForPixel(pos.x);
+          $("volume").value = clampVol(Math.round(raw / 5) * 5);
+          $("volume").dispatchEvent(new Event("input"));
+        }
+      },
+      plugins: [markerLines]
     });
     $("mainchart").parentElement.style.height = "260px";
   } else { mainChart.data.labels = xs; mainChart.data.datasets[0].data = ys; mainChart.update(); }
 
-  // table
-  const rows = [100, threshold, 130, 150, 200, 250];
-  $("tbody").innerHTML = rows.map(v => {
+  // table — skenario bisa ditambah/dihapus/diedit oleh user; baris target selalu tampil
+  const allVols = Array.from(new Set([...customVols, threshold])).sort((a, b) => a - b);
+  $("tbody").innerHTML = allVols.map(v => {
     const net = netAt(v);
+    const idx = customVols.indexOf(v);
+    const isCustom = idx !== -1;
+    const volCell = isCustom
+      ? "<input type='number' class='vol-edit' value='"+v+"' min='0' max='280' step='5' onchange='updateScenario("+idx+", this.value)'>"
+      : "<span>"+v+"</span>";
+    const targetTag = v === threshold ? " <small style='color:var(--red)'>← target</small>" : "";
+    const removeBtn = isCustom
+      ? "<button type='button' class='rowbtn' onclick='removeScenario("+idx+")' title='Hapus skenario'>&times;</button>"
+      : "";
     return "<tr class='"+(v===threshold?"target":"")+"'>"+
-      "<td>"+v+(v===threshold?"  ← target":"")+"</td>"+
+      "<td>"+volCell+targetTag+"</td>"+
       "<td>"+rp(komisi*v)+"</td>"+
       "<td>"+rp(takeAt(v))+"</td>"+
-      "<td class='"+(net>=0?"pos":"neg")+"'>"+rp(net)+"</td></tr>";
+      "<td class='"+(net>=0?"pos":"neg")+"'>"+rp(net)+"</td>"+
+      "<td class='aksi'>"+removeBtn+"</td></tr>";
   }).join("");
 
   // Kartu KPI: kurva DATA ASLI sepanjang volume 0→280
