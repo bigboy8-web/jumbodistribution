@@ -642,18 +642,20 @@ function calc() {
     $("mainchart").parentElement.style.height = "260px";
   } else { mainChart.data.labels = xs; mainChart.data.datasets[0].data = ys; mainChart.update(); }
 
-  // table — skenario bisa ditambah/dihapus/diedit oleh user; baris target selalu tampil
-  const allVols = Array.from(new Set([...customVols, threshold])).sort((a, b) => a - b);
-  $("tbody").innerHTML = allVols.map(v => {
+  // table — skenario bisa ditambah/dihapus/diedit oleh user; baris target selalu tampil.
+  // Render per-index (bukan per-nilai) supaya dua baris bernilai sama tetap tampil dua-duanya.
+  const rowDefs = customVols.map((v, i) => ({ v, i }));
+  if (!customVols.includes(threshold)) rowDefs.push({ v: threshold, i: -1 });
+  rowDefs.sort((a, b) => a.v - b.v);
+  $("tbody").innerHTML = rowDefs.map(({ v, i }) => {
     const net = netAt(v);
-    const idx = customVols.indexOf(v);
-    const isCustom = idx !== -1;
+    const isCustom = i !== -1;
     const volCell = isCustom
-      ? "<input type='number' class='vol-edit' value='"+v+"' min='0' max='280' step='5' onchange='updateScenario("+idx+", this.value)'>"
+      ? "<input type='number' class='vol-edit' value='"+v+"' min='0' max='280' step='5' onchange='updateScenario("+i+", this.value)'>"
       : "<span>"+v+"</span>";
     const targetTag = v === threshold ? " <small style='color:var(--red)'>← target</small>" : "";
     const removeBtn = isCustom
-      ? "<button type='button' class='rowbtn' onclick='removeScenario("+idx+")' title='Hapus skenario'>&times;</button>"
+      ? "<button type='button' class='rowbtn' onclick='removeScenario("+i+")' title='Hapus skenario'>&times;</button>"
       : "";
     return "<tr class='"+(v===threshold?"target":"")+"'>"+
       "<td>"+volCell+targetTag+"</td>"+
@@ -702,13 +704,15 @@ function calcRencana() {
   const toko = num("cvToko"), kunj = num("cvKunjungan"), frek = num("cvFrek");
   const kebutuhan = toko * frek;                    // kunjungan yang dibutuhkan /bulan
   const kapasitas = kunj * hari;                    // kunjungan yang sanggup 1 salesman /bulan
-  const butuh = kapasitas > 0 ? Math.ceil(kebutuhan / kapasitas) : 0;
-  const tokoPerSales = butuh > 0 ? Math.round(toko / butuh) : 0;
+  const butuh = kapasitas > 0 ? Math.ceil(kebutuhan / kapasitas) : Infinity;
+  const tokoPerSales = isFinite(butuh) && butuh > 0 ? Math.round(toko / butuh) : 0;
   $("cv-result").innerHTML =
     toko.toLocaleString("id-ID") + " toko × " + frek + "× kunjungan = <b>" + kebutuhan.toLocaleString("id-ID") + " kunjungan/bulan</b>.<br>" +
     "Kapasitas 1 salesman: " + kunj + " × " + hari + " hari = " + kapasitas.toLocaleString("id-ID") + " kunjungan/bulan.<br>" +
-    "Butuh <b>" + butuh + " salesman</b> (≈ " + tokoPerSales.toLocaleString("id-ID") + " toko/orang) · biaya tim: <b>" +
-    rp(butuh * baseFixed) + "</b> – <b>" + rp(butuh * fixedBonus) + "</b> /bulan (tanpa – dengan bonus).";
+    (isFinite(butuh)
+      ? "Butuh <b>" + butuh + " salesman</b> (≈ " + tokoPerSales.toLocaleString("id-ID") + " toko/orang) · biaya tim: <b>" +
+        rp(butuh * baseFixed) + "</b> – <b>" + rp(butuh * fixedBonus) + "</b> /bulan (tanpa – dengan bonus)."
+      : "<b>Tidak terhitung</b> — kapasitas kunjungan 0, isi dulu kunjungan/hari dan hari kerja.");
 
   // #2 Effective call
   const pct = num("ecPct"), krtTran = num("ecKarton"), volume = num("volume"), threshold = num("threshold");
@@ -784,7 +788,10 @@ function calcAnalisis() {
   const pctA = Math.min(100, Math.max(0, num("hyPct"))) / 100, potongan = num("hyPotongan");
   const marginAgen = margin - potongan - kirim;
   const volSper = volume * (1 - pctA);
-  const labaHyS = (volSper * kontribusi - baseFixed - (volSper >= threshold ? bonus : 0)) * sales;
+  // 100% lewat agen = tidak perlu mempekerjakan salesman sama sekali
+  const adaSalesman = pctA < 1;
+  const fixedHy = adaSalesman ? baseFixed * sales : 0;
+  const labaHyS = adaSalesman ? (volSper * kontribusi - baseFixed - (volSper >= threshold ? bonus : 0)) * sales : 0;
   const labaHyA = volTotal * pctA * marginAgen;
   const labaHybrid = labaHyS + labaHyA - overhead;
   const fmtBest = (v, best) => "<td class='" + (best ? "best" : (v < 0 ? "neg" : "")) + "'>" + rp(v) + "</td>";
@@ -794,7 +801,7 @@ function calcAnalisis() {
       Math.round(volTotal * (1 - pctA)) + " salesman + " + Math.round(volTotal * pctA) + " agen</td></tr>" +
     "<tr><td>Margin efektif /karton</td><td>" + rp(kontribusi) + "</td><td>Rp 0 (harga pabrik)</td><td>" +
       rp(kontribusi) + " / " + rp(marginAgen) + "</td></tr>" +
-    "<tr><td>Biaya tetap /bulan</td><td>" + rp(baseFixed * sales + overhead) + "</td><td>Rp 0</td><td>" + rp(baseFixed * sales + overhead) + "</td></tr>" +
+    "<tr><td>Biaya tetap /bulan</td><td>" + rp(baseFixed * sales + overhead) + "</td><td>Rp 0</td><td>" + rp(fixedHy + overhead) + "</td></tr>" +
     "<tr><td><b>Laba /bulan</b></td>" + fmtBest(labaSendiri, labaSendiri === maxLaba) +
       fmtBest(0, 0 === maxLaba) + fmtBest(labaHybrid, labaHybrid === maxLaba) + "</tr>";
   $("compare-note").textContent = labaHybrid > labaSendiri && labaHybrid > 0
