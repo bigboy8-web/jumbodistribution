@@ -137,10 +137,8 @@
 <div class="wrap">
   <div class="brand">
     <img class="logo-img" src="logo.png" alt="Kerupuk Jumbo Sari Udang" />
-    <span class="brand-tag">Distribusi</span>
   </div>
-  <h1>Kalkulator Kelayakan Distribusi Sendiri</h1>
-  <p class="sub">Karena kamu pemilik dua perusahaan, laba bersih distribusi = <b>nilai tambah</b> dari punya distribusi sendiri vs. jual ke distributor pihak ketiga (yang nilainya Rp&nbsp;0 buatmu). Geser & ubah asumsinya di panel kiri.</p>
+  <h1>Distributon Operational Calculator</h1>
 
   <div class="kpis">
     <div class="kpi blue">
@@ -182,7 +180,7 @@
       <label><span>Uang makan /hari</span><div class="inrow"><input type="number" id="makan" value="15000" step="1000"></div></label>
       <label><span>Hari kerja /bulan</span><div class="inrow"><input type="number" id="hari" value="25" step="1"><em>hari</em></div></label>
       <label><span>Bonus (jika tembus target)</span><div class="inrow"><input type="number" id="bonus" value="300000" step="50000"></div></label>
-      <label><span>Target bonus (karton)</span><div class="inrow"><input type="number" id="threshold" value="115" step="5"><em>krt</em></div></label>
+      <label><span>Target bonus (karton)</span><div class="inrow"><input type="number" id="threshold" value="115" step="5"><em>karton</em></div></label>
 
       <h3 class="mt">Biaya Lain (opsional)</h3>
       <label><span>Biaya kirim /karton</span><div class="inrow"><input type="number" id="kirim" value="0" step="1000"></div></label>
@@ -194,7 +192,7 @@
     <div>
       <div class="statgrid">
         <div class="stat"><div class="l">Biaya tetap /salesman (tanpa bonus)</div><div class="v" id="s-fixno"></div></div>
-        <div class="stat"><div class="l">Biaya tetap /salesman (dgn bonus)</div><div class="v" id="s-fixbon"></div></div>
+        <div class="stat"><div class="l">Biaya tetap /salesman (dengan bonus)</div><div class="v" id="s-fixbon"></div></div>
         <div class="stat"><div class="l">BEP tanpa bonus</div><div class="v" style="color:var(--orange)" id="s-bepno"></div></div>
         <div class="stat"><div class="l">BEP dengan bonus</div><div class="v" style="color:var(--orange)" id="s-bepbon"></div></div>
       </div>
@@ -238,7 +236,7 @@
     </table>
   </div>
 
-  <p class="footnote">Catatan: kalkulator ini single-product. Distributor Pekalongan yang “works belasan tahun” kemungkinan besar menyebar biaya tetap ini ke puluhan SKU — jadi BEP per-produk mereka jauh lebih rendah dari BEP di sini. Bandingkan apel ke apel sebelum menyimpulkan “angkanya works”.</p>
+
 </div>
 
 <script>
@@ -319,11 +317,11 @@ function calc() {
 
   // KPIs
   $("k-kontrib").innerHTML = kpiRp(kontribusi);
-  $("k-bep").innerHTML = (isFinite(bepBon) ? Math.ceil(bepBon) : "∞") + "<span class='unit'>krt</span>";
-  $("k-bep-foot").textContent = "target kamu: " + threshold + " krt";
+  $("k-bep").innerHTML = (isFinite(bepBon) ? Math.ceil(bepBon) : "∞") + "<span class='unit'>karton</span>";
+  $("k-bep-foot").textContent = "target kamu: " + threshold + " karton";
   $("k-net").innerHTML = kpiRp(totalNet);
   $("k-net").style.color = worth ? "#1f9d5a" : "#b02a24";
-  $("k-net-foot").textContent = "@ " + volume + " krt · " + sales + " salesman";
+  $("k-net-foot").textContent = "@ " + volume + " karton · " + sales + " salesman";
 
   // margin box
   $("marginbox").innerHTML = "Margin kotor <b>"+rp(margin)+"</b> − komisi <b>"+rp(komisi)+
@@ -332,8 +330,8 @@ function calc() {
   // stats
   $("s-fixno").textContent = rp(baseFixed);
   $("s-fixbon").textContent = rp(fixedBonus);
-  $("s-bepno").textContent = (isFinite(bepNo)?Math.ceil(bepNo):"∞") + " krt";
-  $("s-bepbon").textContent = (isFinite(bepBon)?Math.ceil(bepBon):"∞") + " krt";
+  $("s-bepno").textContent = (isFinite(bepNo)?Math.ceil(bepNo):"∞") + " karton";
+  $("s-bepbon").textContent = (isFinite(bepBon)?Math.ceil(bepBon):"∞") + " karton";
 
   const bepRow = (l, v, cls) => "<div class='bep-row " + (cls || "") + "'><span>" + l + "</span><span>" + v + "</span></div>";
   $("bep-rows").innerHTML =
@@ -363,7 +361,7 @@ function calc() {
     ? "✓ Distribusi sendiri lebih untung daripada serahkan ke pihak ketiga — selisih ini murni nilai tambahmu, di luar manfaat kontrol channel & data outlet."
     : "✗ Di skenario ini distribusi sendiri RUGI. Lebih baik jual ke distributor pihak ketiga di harga pabrik, kecuali kontrol channel & data outlet kamu nilai lebih besar dari kerugian ini.";
 
-  $("chart-note").textContent = "Perhatikan 'tebing' tepat di target bonus ("+threshold+" krt): laba turun karena bonus "+rp(bonus)+" kepicu. Hindari salesman parkir tepat di angka ini.";
+  $("chart-note").textContent = "Perhatikan 'tebing' tepat di target bonus ("+threshold+" karton): laba turun karena bonus "+rp(bonus)+" kepicu. Hindari salesman parkir tepat di angka ini.";
   $("tabel-note").textContent = "Komisi "+rp(komisi)+"/karton berlaku untuk semua penjualan (baru + repeat).";
 
   // main chart data
@@ -405,7 +403,7 @@ function calc() {
   const seriesKontrib = xs.map(v => v * kontribusi);
   // Oren: total biaya yang harus ditutup (datar → melonjak di titik bonus)
   const seriesBiaya = xs.map(v => baseFixed + (v >= threshold ? bonus : 0));
-  // Ungu: laba bersih vs volume (ada tebing di titik bonus) — sama dgn chart utama
+  // Ungu: laba bersih vs volume (ada tebing di titik bonus) — sama dengan chart utama
   const seriesLaba = ys;
 
   sparks.s1.data.labels = blankLabels; sparks.s1.data.datasets[0].data = normWave(seriesKontrib); sparks.s1.update();
