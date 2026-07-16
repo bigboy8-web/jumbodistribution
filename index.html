@@ -319,6 +319,7 @@
       <button type="button" class="addbtn" onclick="addScenario()">+ Tambah skenario</button>
     </div>
     <p class="note" id="tabel-note"></p>
+    <div style="position:relative;height:220px;margin-bottom:10px"><canvas id="scenariochart"></canvas></div>
     <table>
       <thead><tr><th>Karton/bln</th><th>Komisi salesman</th><th>Take-home</th><th>Laba distribusi/salesman</th><th></th></tr></thead>
       <tbody id="tbody"></tbody>
@@ -451,7 +452,7 @@ function kpiRp(n) {
   return "<small>Rp</small>" + v + (u ? "<span class='unit'>" + u + "</span>" : "");
 }
 
-let mainChart, sparks = {};
+let mainChart, scenarioChart, sparks = {};
 let customVols = [100, 130, 150, 200, 250];
 
 function clampVol(v) { return Math.max(0, Math.min(280, Math.round(Number(v) || 0))); }
@@ -664,6 +665,37 @@ function calc() {
       "<td class='"+(net>=0?"pos":"neg")+"'>"+rp(net)+"</td>"+
       "<td class='aksi'>"+removeBtn+"</td></tr>";
   }).join("");
+
+  // Bar chart skenario: laba distribusi/salesman per baris tabel
+  const scnLabels = rowDefs.map(r => r.v + (r.v === threshold ? " ★" : ""));
+  const scnData = rowDefs.map(r => netAt(r.v));
+  const scnColors = rowDefs.map(r => {
+    const net = netAt(r.v);
+    if (r.v === threshold) return "rgba(232,120,28,.85)";
+    return net >= 0 ? "rgba(31,157,90,.75)" : "rgba(176,42,36,.7)";
+  });
+  const scnTake = rowDefs.map(r => takeAt(r.v));
+  if (!scenarioChart) {
+    scenarioChart = new Chart($("scenariochart").getContext("2d"), {
+      type: "bar",
+      data: { labels: scnLabels, datasets: [{ data: scnData, backgroundColor: scnColors, borderRadius: 8, maxBarThickness: 56 }] },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: {
+            title: i => i[0].label.replace(" ★", "") + " karton/bln" + (i[0].label.includes("★") ? " (target bonus)" : ""),
+            label: i => "Laba distribusi: " + rp(i.raw),
+            afterLabel: i => "Take-home salesman: " + rp(scenarioChart._take[i.dataIndex])
+          } } },
+        scales: { x: { grid: { display: false }, ticks: { color: "#9aa3b0" }, title: { display: true, text: "karton/bulan", color: "#9aa3b0" } },
+                  y: { grid: { color: "#f0f2f7" }, ticks: { color: "#9aa3b0", callback: v => rpShort(v) } } } }
+    });
+  } else {
+    scenarioChart.data.labels = scnLabels;
+    scenarioChart.data.datasets[0].data = scnData;
+    scenarioChart.data.datasets[0].backgroundColor = scnColors;
+    scenarioChart.update();
+  }
+  scenarioChart._take = scnTake;
 
   // Kartu KPI: kurva DATA ASLI sepanjang volume 0→280
   if (!sparks.s1) {
